@@ -55,6 +55,8 @@ a {
   text-decoration: underline;
   text-underline-offset: 2px;
   transition: color 0.15s ease;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 a:hover { color: var(--link-hover); }
@@ -129,6 +131,8 @@ code {
   background: var(--bg-alt);
   padding: 0.15rem 0.4rem;
   font-size: 0.9rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 pre {
@@ -179,7 +183,7 @@ th {
   text-decoration: none;
   color: var(--bg);
   background: var(--ink);
-  padding: 0.75rem 2rem;
+  padding: 0.75rem 1rem;
   border: 1px solid var(--ink);
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   cursor: pointer;
@@ -217,6 +221,9 @@ th {
   .term .sep { color:#7f9a7f; }
   /* timeline */
   .dots { display:flex; flex-wrap:wrap; gap:.3rem; margin:.4rem 0; align-items:center; }
+  @media (max-width:1100px){
+    .dots { flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  }
   .dot { width:1.35rem; height:1.35rem; border-radius:50%; border:1px solid rgba(26,24,20,.4);
          font:ui-monospace,monospace .6rem/1.35rem sans-serif; text-align:center; cursor:pointer;
          background:#fffdf6; color:#5a544b; }
@@ -262,15 +269,28 @@ th {
 <body>
 <main>
 
-<h1>ESBMC Step-by-Step Simulator</h1>
+<h1>ESBMC Proof Strategies Simulator</h1>
 
 <a href="https://esbmc.org">Download ESBMC</a>
 
-<p>One click, one symbolic-execution event. Each step highlights the source line that generated
+<p>Explore the different ways ESBMC proves software. Each step highlights the source line that generated
 the next trace item and prints the run output up to that point. Pick a strategy and the timeline
-becomes that strategy's rounds: <code>--incremental-bmc</code> walks base case + forward condition
-per bound, <code>--k-induction</code> adds the inductive step, and the shared knobs decide which
-bounds get visited at all.</p>
+becomes that strategy's rounds:
+
+<ul>
+  <li>(<em>default</em>, no flags) one bounded BMC run with <code>--unwind K</code>,
+    stopping where a bound cuts a loop or the loop ends naturally</li>
+  <li><code>--falsification</code> walks only the base case per bound,
+    looking just for bugs</li>
+  <li><code>--incremental-bmc</code> walks the base case + forward condition
+    per bound</li>
+  <li><code>--k-induction</code> adds the inductive step on top of the
+    base case + forward condition</li>
+  <li><code>--k-induction-parallel</code> runs the same k-induction rounds but
+    each step on a separate process</li>
+</ul>
+
+</p>
 
 <div class="cols">
   <div class="panel">
@@ -287,7 +307,7 @@ bounds get visited at all.</p>
   </div>
 
   <div class="panel" style="margin-top:1.2rem; position:sticky; bottom: 20px; background: #f8f6ef">
-    <p class="panel-title">Timeline: click a dot or step through</p>
+    <p class="panel-title">Timeline</p>
     <div class="dots" id="dots"></div>
     <div class="btnrow">
       <button class="btn" id="prev">← Prev</button>
