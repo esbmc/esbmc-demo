@@ -62,7 +62,7 @@ a:hover { color: var(--link-hover); }
 hr {
   border: none;
   border-top: 1px solid var(--rule);
-  margin: 3rem 0;
+  margin: 0.5rem 0;
 }
 
 hr.double {
@@ -205,11 +205,12 @@ th {
   .src .ln.cur .no { color:#e8c9c9; }
   /* run output */
   .term { background:#1c1a17; color:#d8d2c4; font-family:ui-monospace,Menlo,monospace;
-          font-size:.76rem; line-height:1.5; padding:.8rem .9rem; overflow:auto;
-          height:30rem; white-space:pre;
-          scroll-snap-type:y proximity; overscroll-behavior:contain; }
+          font-size:.76rem; line-height:1.5; padding:.8rem .9rem;
+          height:10rem; white-space:pre; overflow:hidden;
+          display:flex; flex-direction:column; justify-content:flex-end; }
+  #termInner { width:100%; transform:translateY(0); }
+  #termInner.anim { transition:transform .5s ease-in-out; }
   .term .st { display:block; padding:.1rem .3rem; border-radius:2px; }
-  .term .st:last-child { scroll-snap-align:end; }
   .term .st.cur { background:#4a3f2a; color:#f0e6cf; }
   .term .ok { color:#9fce9f; } .term .bad { color:#e28b8b; font-weight:bold; }
   .term .note { color:#8a8375; font-style:italic; } .term .cut { color:#d9b96c; }
@@ -273,7 +274,7 @@ bounds get visited at all.</p>
 
 <div class="cols">
   <div class="panel">
-    <p class="panel-title">main.c — current event's line highlighted</p>
+    <p class="panel-title">main.c: current event's line highlighted</p>
     <div class="src" id="src"></div>
     <hr>
     <p class="disc" id="coverage"></p>
@@ -281,12 +282,12 @@ bounds get visited at all.</p>
 
   <div class="panel">
     <p class="panel-title">Run output (states and verdicts, printed as you step)</p>
-    <div class="term" id="term" role="log" aria-live="polite"></div>
+    <div class="term" id="term" role="log" aria-live="polite"><div id="termInner"></div></div>
     <div class="verdict" id="verdict"></div>
   </div>
 
   <div class="panel" style="margin-top:1.2rem; position:sticky; bottom: 20px; background: #f8f6ef">
-    <p class="panel-title">Timeline — click a dot or step through</p>
+    <p class="panel-title">Timeline: click a dot or step through</p>
     <div class="dots" id="dots"></div>
     <div class="btnrow">
       <button class="btn" id="prev">← Prev</button>
@@ -312,7 +313,7 @@ bounds get visited at all.</p>
   </div>
 
   <fieldset class="group" id="grpGeneral">
-    <legend>General — plain &amp; default strategy</legend>
+    <legend>General: plain &amp; default strategy</legend>
     <div class="knob"><label class="flag" for="unwind">--unwind</label>
       <input type="number" id="unwind" min="0" max="15" value="5"> <span class="hint">back-edge cap; 0 = none (unlimited symex)</span></div>
     <div class="knob"><label class="flag"><input type="checkbox" id="noua"> --no-unwinding-assertions</label>
@@ -323,7 +324,7 @@ bounds get visited at all.</p>
   </fieldset>
 
   <fieldset class="group" id="grpIter">
-    <legend>Iterative strategies — shared knobs (--incremental-bmc / --falsification)</legend>
+    <legend>Iterative strategies: shared knobs (--incremental-bmc / --falsification)</legend>
     <div class="knob"><label class="flag" for="bks">--base-k-step</label>
       <input type="number" id="bks" min="0" max="59" value="1"> <span class="hint">first k (0 rejected)</span></div>
     <div class="knob"><label class="flag" for="ksi">--k-step</label>
@@ -363,7 +364,7 @@ bounds get visited at all.</p>
     <strong>dark chips</strong> round/phase headers.</li>
     <li>Iterative strategies loop k from <code>--base-k-step</code> to <code>--max-k-step</code> in
     steps of <code>--k-step</code>; each round re-runs symex with <code>--unwind k</code>. The proof
-    closes on the first round whose forward condition holds — with <code>--k-step</code> 2 that is
+    closes on the first round whose forward condition holds. With <code>--k-step</code> 2 that is
     k = 11, not 10.</li>
     <li><code>--max-inductive-step</code> gates only I(k): rounds above the cap skip straight from
     F(k) to the next k. B(k) and F(k) still run, so a proof via F(k) is unaffected.</li>
@@ -378,12 +379,12 @@ bounds get visited at all.</p>
 <section style="margin-top:1rem">
   <h2>Sources</h2>
   <ol>
-    <li>ESBMC docs — Verification Algorithms: <a href="https://esbmc.github.io/docs/theory/verification-algorithms/">esbmc.github.io/docs/theory/verification-algorithms</a></li>
-    <li>ESBMC docs — Usage, Unwinding Assertions &amp; Verification Strategies: <a href="https://esbmc.github.io/docs/usage/">esbmc.github.io/docs/usage</a></li>
-    <li><code>src/goto-symex/engine/symex_goto.cpp</code> — <code>get_unwind</code>, <code>loop_bound_exceeded</code> (master)</li>
-    <li><code>src/esbmc/parseoptions/bmc_strategy.cpp</code> — the B/F/I strategy loop and give-up verdict (master)</li>
-    <li><code>src/esbmc/parseoptions/k_induction.cpp</code> — phase runners, <code>--max-inductive-step</code> gate (master)</li>
-    <li><code>src/esbmc/parseoptions/command_line_options.cpp</code> — CLI validation of the shared knobs (master)</li>
+    <li>ESBMC docs, Verification Algorithms: <a href="https://esbmc.github.io/docs/theory/verification-algorithms/">esbmc.github.io/docs/theory/verification-algorithms</a></li>
+    <li>ESBMC docs, Usage, Unwinding Assertions &amp; Verification Strategies: <a href="https://esbmc.github.io/docs/usage/">esbmc.github.io/docs/usage</a></li>
+    <li><code>src/goto-symex/engine/symex_goto.cpp</code>: <code>get_unwind</code>, <code>loop_bound_exceeded</code> (master)</li>
+    <li><code>src/esbmc/parseoptions/bmc_strategy.cpp</code>: the B/F/I strategy loop and give-up verdict (master)</li>
+    <li><code>src/esbmc/parseoptions/k_induction.cpp</code>: phase runners, <code>--max-inductive-step</code> gate (master)</li>
+    <li><code>src/esbmc/parseoptions/command_line_options.cpp</code>: CLI validation of the shared knobs (master)</li>
   </ol>
 </section>
 
@@ -430,29 +431,29 @@ function symexEvents(ev, k, mode, stRef){
     ev.push({ line:9, kind:'assign', txt:'i = i + 1  →  i = ' + j,
       st:{ n:stRef.n, txt:'i = ' + j + ' ' + bin32(j) } });
     if (x > 0) {
-      ev.push({ line:10, kind:'guard', txt:'guard x > 0: true — decrement taken' });
+      ev.push({ line:10, kind:'guard', txt:'guard x > 0: true, decrement taken' });
       x = x - 1;
       stRef.n++;
       ev.push({ line:10, kind:'assign', txt:'x = x - 1  →  x = ' + x,
         st:{ n:stRef.n, txt:'x = ' + x + ' ' + bin32(x) } });
     } else {
-      ev.push({ line:10, kind:'guard', txt:'guard x > 0: false — x already 0' });
+      ev.push({ line:10, kind:'guard', txt:'guard x > 0: false, x already 0' });
     }
   }
   var cut = k > 0 && passes < NEED;
   if (cut) {
     ev.push({ line:8, kind:'cut',
-      txt:'Not unwinding loop 1 iteration ' + (k + 1) + ' — bound ' + k + ' reached at the back-edge' });
+      txt:'Not unwinding loop 1 iteration ' + (k + 1) + ': bound ' + k + ' reached at the back-edge' });
     if (mode === 'assert') {
       stRef.n++;
       ev.push({ line:8, kind:'prop', violated:true,
         txt:'unwinding assertion ¬(i < 10) fails here (i = ' + passes + ' < 10)',
         st:{ n:stRef.n, txt:'i = ' + passes + ' ' + bin32(passes) } });
     } else if (mode === 'assume') {
-      ev.push({ line:8, kind:'guard', txt:'assume ¬(i < 10) with i = ' + passes + ': infeasible — path assumed away' });
+      ev.push({ line:8, kind:'guard', txt:'assume ¬(i < 10) with i = ' + passes + ': infeasible, path assumed away' });
     }
   } else if (k > 0 && passes === NEED) {
-    ev.push({ line:8, kind:'guard', txt:'guard i < 10: false (i = ' + NEED + ') — natural exit, no cut' });
+    ev.push({ line:8, kind:'guard', txt:'guard i < 10: false (i = ' + NEED + '), natural exit, no cut' });
   }
   return { x:x, cut:cut, passes:passes };
 }
@@ -464,7 +465,7 @@ function buildPlain(cfg){
   var mode = cfg.pl ? 'partial' : (cfg.noua ? 'assume' : 'assert');
   ev.push({ line:null, kind:'note',
     txt: bound === 0
-      ? 'no --unwind: max_unwind = 0 — symex unrolls until the loop condition stops it'
+      ? 'no --unwind: max_unwind = 0, symex unrolls until the loop condition stops it'
       : 'single BMC run with --unwind ' + bound + ' (no k loop)' });
   ev.push({ line:null, kind:'header', txt:'Starting Bounded Model Checking' });
   var r = symexEvents(ev, bound, mode, stRef);
@@ -475,21 +476,21 @@ function buildPlain(cfg){
       verdict:{ cls:'ok', label:'VERIFICATION SUCCESSFUL' + (bound === 0 ? '' : ' (sound)') },
       txt: bound === 0
         ? 'no bound: the loop unrolled its natural 10 passes'
-        : 'bound ' + bound + ' was never reached — the formula is UNSAT' });
+        : 'bound ' + bound + ' was never reached; the formula is UNSAT' });
   } else if (mode === 'assert') {
     ev.push({ line:null, kind:'end', violated:true,
-      verdict:{ cls:'bad', label:'VERIFICATION FAILED — unwinding assertion loop' },
+      verdict:{ cls:'bad', label:'VERIFICATION FAILED: unwinding assertion loop' },
       txt:'the failing property is the CUT, not your assert' });
   } else if (mode === 'assume') {
     ev.push({ line:null, kind:'end',
       verdict:{ cls:'ok', label:'VERIFICATION SUCCESSFUL (bounded)' },
-      txt:'paths past ' + bound + ' unwindings were assumed away — result holds only up to the bound' });
+      txt:'paths past ' + bound + ' unwindings were assumed away; result holds only up to the bound' });
   } else {
     ev.push({ line:12, kind:'phase', sat:r.x > 0,
       txt:'truncated path reached the assert with i = ' + r.passes + ', x = ' + r.x +
-          (r.x > 0 ? ' — spurious violation' : ' — holds by luck; pass ' + NEED + ' unchecked') });
+          (r.x > 0 ? ': spurious violation' : ': holds by luck; pass ' + NEED + ' unchecked') });
     ev.push({ line:null, kind:'end', violated:r.x > 0,
-      verdict: r.x > 0 ? { cls:'bad', label:'VERIFICATION FAILED — assertion (spurious)' }
+      verdict: r.x > 0 ? { cls:'bad', label:'VERIFICATION FAILED: assertion (spurious)' }
                        : { cls:'ok', label:'VERIFICATION SUCCESSFUL (silently unsound)' },
       txt:'--partial-loops leaves the cut unguarded' });
   }
@@ -536,7 +537,7 @@ function buildIter(cfg){
       txt:'Checking base case, k = ' + k });
     var rb = symexEvents(ev, k, 'assume', stRef);
     ev.push({ line:null, kind:'phase', sat:false,
-      txt:'Base case: UNSAT — no violation up to k = ' + k });
+      txt:'Base case: UNSAT, no violation up to k = ' + k });
 
     if (cfg.strat === 'falsi') continue;
 
@@ -550,17 +551,17 @@ function buildIter(cfg){
         txt:'Forward condition holds at k = ' + k + ': every loop fully unrolled' });
       ev.push({ line:null, kind:'end',
         verdict:{ cls:'ok', label:'VERIFICATION SUCCESSFUL' },
-        txt:'Solution found by the forward condition (k = ' + k + ') — all loops fully unrolled, result not bounded' });
+        txt:'Solution found by the forward condition (k = ' + k + '): all loops fully unrolled, result not bounded' });
       closed = k;
       break;
     }
     ev.push({ line:null, kind:'phase', sat:true,
-      txt:'Forward condition: SAT — a loop needed more than ' + k + ' unwindings' });
+      txt:'Forward condition: SAT, a loop needed more than ' + k + ' unwindings' });
 
     /* ---- inductive step I(k) ---- */
     if (!isKind) continue;
     if (k === 1) {
-      ev.push({ line:null, kind:'note', txt:'inductive step is not run at k = 1 — a one-iteration hypothesis proves nothing' });
+      ev.push({ line:null, kind:'note', txt:'inductive step is not run at k = 1: a one-iteration hypothesis proves nothing' });
       continue;
     }
     if (cfg.mis >= 0 && k > cfg.mis) {
@@ -569,11 +570,11 @@ function buildIter(cfg){
     }
     ev.push({ line:null, kind:'header', round:'k=' + k + ' · I', txt:'Checking inductive step, k = ' + k });
     ev.push({ line:8, kind:'havoc', txt:'havoc at loop head: i ← nondet_uint(), x ← nondet_uint()' });
-    ev.push({ line:8, kind:'guard', txt:'assume(i < 10) — entry condition pins the havoced state' });
+    ev.push({ line:8, kind:'guard', txt:'assume(i < 10): entry condition pins the havoced state' });
     ev.push({ line:12, kind:'phase', sat:true,
-      txt:'Inductive step: SAT — spurious counterexample (havoc decoupled i from x: e.g. i = 9, x = 10)' });
+      txt:'Inductive step: SAT, spurious counterexample (havoc decoupled i from x: e.g. i = 9, x = 10)' });
     if (cfg.cex)
-      ev.push({ line:null, kind:'note', txt:'--show-cex: cex states printed — i = 9, x = 10 … no real execution reaches this state' });
+      ev.push({ line:null, kind:'note', txt:'--show-cex: cex states printed, i = 9, x = 10 … no real execution reaches this state' });
     if (cfg.bidir)
       ev.push({ line:null, kind:'note', txt:'--bidirectional: searching the spurious cex for assignable invariants' });
   }
@@ -585,7 +586,7 @@ function buildIter(cfg){
             (cfg.unl ? ' until --timeout/--memlimit' : ' up to --max-k-step ' + cfg.mks) });
     } else {
       ev.push({ line:null, kind:'end', verdict:{ cls:'unk', label:'VERIFICATION UNKNOWN' },
-        txt:'Unable to prove or falsify the program, giving up. — exhausted k ≤ ' +
+        txt:'Unable to prove or falsify the program, giving up. Exhausted k ≤ ' +
             (cfg.unl ? '∞' : cfg.mks) + ' without closing F(k)' + (isKind ? ' or I(k)' : '') });
     }
   }
@@ -598,7 +599,7 @@ function buildTimeline(cfg){
 }
 
 /* ---------- rendering ---------- */
-var step = 0, events = [], timer = null;
+var step = 0, events = [], timer = null, oldHRef = null;
 
 function readCfg(){
   return { strat: (document.querySelector('input[name=strat]:checked') || {}).value || 'plain',
@@ -662,7 +663,7 @@ function render(){
   }).join('');
   var visited = Object.keys(seen).length;
   $('coverage').textContent = 'source scan: ' + visited + ' of ' + SRC.length + ' lines visited' +
-    (cur && cur.kind === 'havoc' ? ' — havoc re-enters the loop head with fresh nondet values' : '') +
+    (cur && cur.kind === 'havoc' ? ': havoc re-enters the loop head with fresh nondet values' : '') +
     (truncated ? ' (event limit ' + cfg.limit + ' reached; the real run continues)' : '');
 
   /* run output up to current step */
@@ -681,7 +682,6 @@ function render(){
     out.push('<span class="st' + (cls ? ' ' + cls : '') + (i === step && !e.st ? ' cur' : '') + '">' +
              esc(e.kind === 'end' ? '' : e.txt || '') + (e.kind === 'end' && e.verdict ? 'VERIFICATION ' + (e.verdict.cls === 'bad' ? 'FAILED' : e.verdict.cls === 'ok' ? 'SUCCESSFUL' : 'UNKNOWN') : '') + '</span>');
   }
-  $('term').innerHTML = out.join('\n');
 
   /* verdict line: last verdict at or before current step */
   var vd = $('verdict'); vd.textContent = ''; vd.className = 'verdict';
@@ -703,16 +703,26 @@ function render(){
   });
   $('dots').innerHTML = html;
 
-  /* keep the run-output pane pinned to its newest content, after layout */
-  var t = $('term');
-  function pin(){ t.scrollTop = t.scrollHeight; }
-  pin();
-  requestAnimationFrame(function(){ pin(); requestAnimationFrame(pin); });
+  /* slide the run-output pane to its newest content: 0.5s ease-in-out both ways.
+     The pane is bottom-pinned (justify-content:flex-end), so offsetHeight is the
+     visible height and constant; measure scrollTop-free overflow instead. */
+  var inner = $('termInner');
+  var oldH = oldHRef === null ? inner.scrollHeight : oldHRef;
+  inner.classList.remove('anim');
+  inner.innerHTML = out.join('\n');
+  var delta = inner.scrollHeight - oldH;
+  if (delta !== 0) {
+    inner.style.transform = 'translateY(' + Math.min(delta, 10000) + 'px)';
+    void inner.offsetHeight;
+    inner.classList.add('anim');
+    inner.style.transform = 'translateY(0)';
+  }
+  oldHRef = inner.scrollHeight;
   /* a click must not yank the page to the focused element */
   if (document.activeElement && document.activeElement.blur)
     document.activeElement.blur();
 
-  $('nowline').textContent = cur ? (cur.line ? 'line ' + cur.line + ' — ' : '') + (cur.txt || cur.verdict && cur.verdict.label || '') : '';
+  $('nowline').textContent = cur ? (cur.line ? 'line ' + cur.line + ': ' : '') + (cur.txt || cur.verdict && cur.verdict.label || '') : '';
   $('stepinfo').textContent = 'event ' + (step + 1) + ' / ' + shown + (truncated ? ' (limit)' : ' (end)');
   $('prev').disabled = step === 0;
   $('next').disabled = step >= shown - 1;
@@ -746,7 +756,7 @@ pressed('auto', function(){
     var shown = Math.min(readCfg().limit, events.length);
     if (step >= shown - 1) { stopAuto(); return; }
     step++; render();
-  }, 500);
+  }, 2000);
 });
 pressed('reset', function(){ step = 0; render(); });
 
