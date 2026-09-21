@@ -79,6 +79,7 @@ h1 {
   font-weight: 200;
   font-size: clamp(2.5rem, 6vw, 4.5rem);
   letter-spacing: -0.015em;
+  border-bottom: 1px solid var(--accent);
   margin-bottom: 1.5rem;
 }
 
@@ -260,7 +261,9 @@ th {
 <body>
 <main>
 
-<h1>Walking an ESBMC run against the source</h1>
+<h1>ESBMC Step-by-Step Simulator</h1>
+
+<a href="https://esbmc.org">Download ESBMC</a>
 
 <p>One click, one symbolic-execution event. Each step highlights the source line that generated
 the next trace item and prints the run output up to that point. Pick a strategy and the timeline
@@ -276,25 +279,23 @@ bounds get visited at all.</p>
     <p class="disc" id="coverage"></p>
   </div>
 
-  <div>
-    <div class="panel">
-      <p class="panel-title">Run output (states and verdicts, printed as you step)</p>
-      <div class="term" id="term" role="log" aria-live="polite"></div>
-      <div class="verdict" id="verdict"></div>
-    </div>
+  <div class="panel">
+    <p class="panel-title">Run output (states and verdicts, printed as you step)</p>
+    <div class="term" id="term" role="log" aria-live="polite"></div>
+    <div class="verdict" id="verdict"></div>
+  </div>
 
-    <div class="panel" style="margin-top:1.2rem">
-      <p class="panel-title">Timeline — click a dot or step through</p>
-      <div class="dots" id="dots"></div>
-      <div class="btnrow">
-        <button class="btn" id="prev">← Prev</button>
-        <button class="btn" id="next">Next →</button>
-        <button class="btn" id="auto">⏵ auto</button>
-        <button class="btn" id="reset">↺ restart</button>
-        <span class="stepinfo" id="stepinfo"></span>
-      </div>
-      <div class="nowline" id="nowline"></div>
+  <div class="panel" style="margin-top:1.2rem; position:sticky; bottom: 20px; background: rgb()">
+    <p class="panel-title">Timeline — click a dot or step through</p>
+    <div class="dots" id="dots"></div>
+    <div class="btnrow">
+      <button class="btn" id="prev">← Prev</button>
+      <button class="btn" id="next">Next →</button>
+      <button class="btn" id="auto">⏵ auto</button>
+      <button class="btn" id="reset">↺ restart</button>
+      <span class="stepinfo" id="stepinfo"></span>
     </div>
+    <div class="nowline" id="nowline"></div>
   </div>
 </div>
 
