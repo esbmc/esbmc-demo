@@ -376,24 +376,89 @@ becomes that strategy's rounds:
 
 <section style="margin-top:1.2rem">
   <h2>What you are looking at</h2>
+  <p>ESBMC compiles the program into an SMT formula and asks a solver a yes or no question.
+  Unrolling loops to a bound <em>k</em> produces a path constraint <em>c</em>; the solver checks
+  whether <em>c</em> ∧ ¬<em>p</em> is satisfiable, where <em>p</em> is the property that must hold.
+  SAT means some execution reaches a state where the property fails, hence a bug. UNSAT means no run
+  up to <em>k</em> violates <em>p</em>. The strategies below keep the program unchanged; they change
+  how that formula is built at each round.</p>
   <ul>
     <li><strong>Green dots</strong> are assignments (each prints a <em>State</em> block with the
     solver's model value), <strong>grey</strong> guard evaluations, <strong>amber</strong> the
     unwinding cut, <strong>dark red</strong> a violated property, <strong>beige</strong> a phase
     verdict (UNSAT/SAT), <strong>dashed</strong> the havoc that starts an inductive step, and
     <strong>dark chips</strong> round/phase headers.</li>
-    <li>Iterative strategies loop k from <code>--base-k-step</code> to <code>--max-k-step</code> in
-    steps of <code>--k-step</code>; each round re-runs symex with <code>--unwind k</code>. The proof
-    closes on the first round whose forward condition holds. With <code>--k-step</code> 2 that is
-    k = 11, not 10.</li>
-    <li><code>--max-inductive-step</code> gates only I(k): rounds above the cap skip straight from
-    F(k) to the next k. B(k) and F(k) still run, so a proof via F(k) is unaffected.</li>
-    <li><code>--incremental-bmc</code> proves by full unrolling only: no inductive step, so if
-    F(k) never holds before the cap, the run gives up with VERIFICATION UNKNOWN.</li>
+    <li>The <strong>base case B(k)</strong> encodes plain BMC over <em>k</em> unwindings and checks
+    <em>c</em> ∧ ¬<em>p</em>, so it can only find bugs.</li>
+    <li>The <strong>forward condition F(k)</strong> re-encodes the formula, drops the property, and
+    keeps only the unwinding assertions, asking whether every loop fully unrolls within <em>k</em>.</li>
+    <li>The <strong>inductive step I(k)</strong> re-encodes the loop by havocking each loop-modified
+    variable to a fresh nondet value, assuming the entry condition, then checking the property holds
+    <em>k</em> more iterations. This is how ESBMC proves unbounded safety without fully unrolling.</li>
+    <li>Rounds advance k from <code>--base-k-step</code> to <code>--max-k-step</code> in steps of
+    <code>--k-step</code>; each re-runs symex with <code>--unwind k</code> and closes on the first
+    round where F(k) is UNSAT. With <code>--k-step</code> 2 that is k = 11, not 10.</li>
+    <li><code>--max-inductive-step</code> gates only I(k): rounds above the cap skip from F(k) to the
+    next k, while B(k) and F(k) still run, so a proof via F(k) is unaffected.</li>
+    <li><code>--incremental-bmc</code> runs B(k) and F(k) only, with no inductive step; if F(k)
+    never holds before the cap, the run gives up with VERIFICATION UNKNOWN.</li>
     <li>With <code>K &lt; 11</code> in a plain run the verdict is the unwinding assertion (or one of
     the two unsound outcomes under <code>--partial-loops</code> / <code>--no-unwinding-assertions</code>);
     with <code>K ≥ 11</code> the loop exits naturally and the trace reaches the assert.</li>
   </ul>
+</section>
+
+<section style="margin-top:1.2rem">
+  <h2>Which strategy to pick</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Strategy</th>
+        <th>Strengths</th>
+        <th>Weaknesses</th>
+        <th>Use it</th>
+        <th>Avoid it</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Default</strong> (no flags, <code>--unwind K</code>)</td>
+        <td>Fast, single solver call, predictable; easiest to read the trace</td>
+        <td>Must hand-pick K; only <em>bounded</em> (needs the unwinding assertion to be sound); does not iterate</td>
+        <td>Smoke tests, tiny or known loops, debugging one property</td>
+        <td>Loops with unknown or large bounds, proving unbounded safety</td>
+      </tr>
+      <tr>
+        <td><code>--falsification</code></td>
+        <td>Cheapest bug-hunting; auto-iterates K over bounds; only cares about refutation</td>
+        <td>Never proves anything; hits <code>VERIFICATION UNKNOWN</code> at the cap; swaps unwinding assertions for assumptions; can miss deep bugs</td>
+        <td>Finding a counterexample fast, when you only need to refute</td>
+        <td>Any correctness argument</td>
+      </tr>
+      <tr>
+        <td><code>--incremental-bmc</code></td>
+        <td>Adds the forward condition, so it <em>proves</em> correctness once all loops fully unroll; sound when it closes; no hand-picked K</td>
+        <td>No inductive step, so the loop must unroll to a fixed point; large or unbounded loops run out the cap to UNKNOWN</td>
+        <td>Loops with reasonable bounds; when you want an automated proof</td>
+        <td>Deep loops, properties that need induction</td>
+      </tr>
+      <tr>
+        <td><code>--k-induction</code></td>
+        <td>Adds the inductive step, so it <em>proves unbounded</em> safety without fully unrolling; most powerful</td>
+        <td>Slowest; the havoc step yields spurious counterexamples that do not close; harder to follow</td>
+        <td>Proving loops whose full unroll is infeasible</td>
+        <td>Bounded loops, pure bug-finding</td>
+      </tr>
+      <tr>
+        <td><code>--k-induction-parallel</code></td>
+        <td>Same proof power as k-induction; uses separate processes for better time on multicore</td>
+        <td>Same weaknesses as k-induction; adds process-spawn overhead</td>
+        <td>Large k-induction jobs with idle cores</td>
+        <td>Small problems</td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="disc">Default and falsification answer fast but never prove; incremental-bmc gives an automated bounded proof; k-induction (parallel) gives an unbounded proof.</p>
 </section>
 
 <section style="margin-top:1rem">
