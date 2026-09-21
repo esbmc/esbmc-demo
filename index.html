@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ESBMC trace timeline: source, counterexample, parameters</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@200;300;400;700;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f5f1e8;
+  --bg-alt: #ede8db;
+  --ink: #1a1a1a;
+  --ink-soft: #4a4a4a;
+  --ink-faint: #8a8a8a;
+  --rule: #1a1a1a;
+  --rule-soft: #c9c2b3;
+  --accent: #8b1a1a;
+  --link: #1a1a1a;
+  --link-hover: #8b1a1a;
+  --font-display: "Playfair Display", "Didot", "Times New Roman", Georgia, serif;
+  --font-body: "Source Serif 4", "Georgia", "Times New Roman", serif;
+  --font-mono: "Courier New", monospace;
+  --max-width: 1100px;
+  --gutter: 2rem;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { font-size: 18px; scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+main,
+.container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+@media (max-width: 1100px) {
+  :root { --gutter: 2.5rem; }
+}
+
+a {
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.15s ease;
+}
+
+a:hover { color: var(--link-hover); }
+
+hr {
+  border: none;
+  border-top: 1px solid var(--rule);
+  margin: 3rem 0;
+}
+
+hr.double {
+  border-top: 3px double var(--rule);
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  color: var(--ink);
+  line-height: 1.05;
+}
+
+h1 {
+  font-weight: 200;
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  letter-spacing: -0.015em;
+  margin-bottom: 1.5rem;
+}
+
+h2 {
+  font-weight: 300;
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  letter-spacing: -0.01em;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+h3 {
+  font-weight: 400;
+  font-size: 1.5rem;
+  letter-spacing: -0.005em;
+  margin-top: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+p { margin-bottom: 1rem; }
+
+ul, ol {
+  margin-bottom: 1.5rem;
+  padding-left: 1.5rem;
+}
+
+li { margin-bottom: 0.4rem; }
+li::marker { color: var(--ink-faint); }
+
+ul li { list-style-type: disc; }
+ol li { list-style-type: decimal; }
+
+strong { font-weight: 700; }
+em { font-style: italic; }
+
+blockquote {
+  border-left: 3px solid var(--accent);
+  padding-left: 1.5rem;
+  margin: 1.5rem 0;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+code {
+  font-family: var(--font-mono);
+  background: var(--bg-alt);
+  padding: 0.15rem 0.4rem;
+  font-size: 0.9rem;
+}
+
+pre {
+  background: var(--bg-alt);
+  padding: 1.5rem;
+  overflow-x: auto;
+  margin: 1.5rem 0;
+  border: 1px solid var(--rule-soft);
+}
+
+pre code {
+  background: none;
+  padding: 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 2rem 0;
+  font-size: 0.95rem;
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+th, td {
+  padding: 0.85rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+th {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 2px solid var(--rule);
+}
+
+.btn {
+  display: inline-block;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  color: var(--bg);
+  background: var(--ink);
+  padding: 0.75rem 2rem;
+  border: 1px solid var(--ink);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+</style>
+<style>
+  .panel { border:1px solid rgba(26,24,20,.25); padding:1rem; background:rgba(255,255,255,.35); }
+  .panel-title { font-family:Georgia,'Times New Roman',serif; font-size:.95rem; letter-spacing:.08em;
+                 text-transform:uppercase; margin:0 0 .6rem 0; color:#5a544b; }
+  .cols > div + div { margin-top:1.2rem; }
+  /* source */
+  .src { font-family:ui-monospace,Menlo,monospace; font-size:.82rem; line-height:1.65;
+         overflow-x:auto; white-space:pre; }
+  .src .ln { display:block; padding:0 .4rem; border-radius:2px; }
+  .src .no { display:inline-block; width:2.2em; color:#8a8375; text-align:right; margin-right:.8em; }
+  .src .ln.seen { background:rgba(122,31,31,.10); }
+  .src .ln.cur { background:#7a1f1f; color:#f7f2e7; }
+  .src .ln.cur .no { color:#e8c9c9; }
+  /* run output */
+  .term { background:#1c1a17; color:#d8d2c4; font-family:ui-monospace,Menlo,monospace;
+          font-size:.76rem; line-height:1.5; padding:.8rem .9rem; overflow:auto;
+          height:30rem; white-space:pre;
+          scroll-snap-type:y proximity; overscroll-behavior:contain; }
+  .term .st { display:block; padding:.1rem .3rem; border-radius:2px; }
+  .term .st:last-child { scroll-snap-align:end; }
+  .term .st.cur { background:#4a3f2a; color:#f0e6cf; }
+  .term .ok { color:#9fce9f; } .term .bad { color:#e28b8b; font-weight:bold; }
+  .term .note { color:#8a8375; font-style:italic; } .term .cut { color:#d9b96c; }
+  .term .sep { color:#7f9a7f; }
+  /* timeline */
+  .dots { display:flex; flex-wrap:wrap; gap:.3rem; margin:.4rem 0; align-items:center; }
+  .dot { width:1.35rem; height:1.35rem; border-radius:50%; border:1px solid rgba(26,24,20,.4);
+         font:ui-monospace,monospace .6rem/1.35rem sans-serif; text-align:center; cursor:pointer;
+         background:#fffdf6; color:#5a544b; }
+  .dot:focus, .dot:focus-visible, .btn:focus, .btn:focus-visible { outline:none; }
+  .dot.assign { background:#d8e8d0; }
+  .dot.guard  { background:#e7e2d6; color:#6b655c; }
+  .dot.cut    { background:#e8c9a0; }
+  .dot.prop   { background:#7a1f1f; color:#f7f2e7; border-color:#7a1f1f; }
+  .dot.phase  { background:#dcd6c6; }
+  .dot.havoc  { background:#efe0c8; border-style:dashed; }
+  .dot.header { background:#5a544b; color:#f7f2e7; border-radius:.3rem; width:auto; padding:0 .3rem; }
+  .dot.note   { background:transparent; border-style:dotted; }
+  .dot.end    { background:#333; color:#f7f2e7; border-radius:.3rem; width:auto; padding:0 .35rem; }
+  .dot.future { opacity:.32; }
+  .dot.cur { outline:2px solid #7a1f1f; outline-offset:1px; }
+  .btnrow { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; margin:.4rem 0; }
+  .btn:disabled { opacity:.4; cursor:default; }
+  .stepinfo { font-family:ui-monospace,Menlo,monospace; font-size:.8rem; color:#5a544b; margin-left:auto; }
+  .nowline { font-family:ui-monospace,Menlo,monospace; font-size:.85rem; min-height:2.6em;
+             border-left:3px solid #7a1f1f; padding:.25rem .6rem; background:rgba(122,31,31,.06); }
+  /* grouped knobs */
+  fieldset.group { border:none; border-left:3px solid rgba(122,31,31,.35); margin:.7rem 0 .3rem 0;
+                   padding:0 0 0 .7rem; }
+  fieldset.group legend { font-family:Georgia,'Times New Roman',serif; font-size:.85rem; letter-spacing:.06em;
+                   text-transform:uppercase; color:#5a544b; padding:0; }
+  .knob { display:flex; align-items:center; gap:.5rem; margin:.3rem 0; flex-wrap:wrap; }
+  .knob label.flag { font-family:ui-monospace,Menlo,monospace; font-size:.85rem; min-width:10.5em; }
+  .knob input[type=number] { width:4.5em; font:inherit; padding:.15rem .3rem;
+        border:1px solid rgba(26,24,20,.4); background:#fffdf6; }
+  .knob .hint { font-size:.8rem; color:#6b655c; }
+  .strategy-picker { display:flex; flex-wrap:wrap; gap:.4rem; margin:.2rem 0 .4rem 0; }
+  .strategy-picker label { font-family:ui-monospace,Menlo,monospace; font-size:.82rem;
+        border:1px solid rgba(26,24,20,.4); padding:.25rem .55rem; cursor:pointer; background:#fffdf6; }
+  .strategy-picker input { margin-right:.35em; }
+  .strategy-picker label:has(input:checked) { background:#7a1f1f; color:#f7f2e7; border-color:#7a1f1f; }
+  .cmdline { font-family:ui-monospace,Menlo,monospace; font-size:.82rem; background:#1c1a17;
+        color:#e8e2d5; padding:.5rem .7rem; overflow-x:auto; white-space:pre-wrap; word-break:break-all; }
+  .verdict { margin-top:.6rem; font-weight:bold; }
+  .verdict.ok { color:#2e6b2e; } .verdict.bad { color:#8f2020; } .verdict.unk { color:#8a6d1f; }
+  .disc { font-size:.8rem; color:#6b655c; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Walking an ESBMC run against the source</h1>
+
+<p>One click, one symbolic-execution event. Each step highlights the source line that generated
+the next trace item and prints the run output up to that point. Pick a strategy and the timeline
+becomes that strategy's rounds: <code>--incremental-bmc</code> walks base case + forward condition
+per bound, <code>--k-induction</code> adds the inductive step, and the shared knobs decide which
+bounds get visited at all.</p>
+
+<div class="cols">
+  <div class="panel">
+    <p class="panel-title">main.c — current event's line highlighted</p>
+    <div class="src" id="src"></div>
+    <hr>
+    <p class="disc" id="coverage"></p>
+  </div>
+
+  <div>
+    <div class="panel">
+      <p class="panel-title">Run output (states and verdicts, printed as you step)</p>
+      <div class="term" id="term" role="log" aria-live="polite"></div>
+      <div class="verdict" id="verdict"></div>
+    </div>
+
+    <div class="panel" style="margin-top:1.2rem">
+      <p class="panel-title">Timeline — click a dot or step through</p>
+      <div class="dots" id="dots"></div>
+      <div class="btnrow">
+        <button class="btn" id="prev">← Prev</button>
+        <button class="btn" id="next">Next →</button>
+        <button class="btn" id="auto">⏵ auto</button>
+        <button class="btn" id="reset">↺ restart</button>
+        <span class="stepinfo" id="stepinfo"></span>
+      </div>
+      <div class="nowline" id="nowline"></div>
+    </div>
+  </div>
+</div>
+
+<div class="panel" style="margin-top:1.2rem">
+  <p class="panel-title">Parameters</p>
+  <p class="panel-title" style="letter-spacing:.04em; font-size:.85rem; margin-bottom:.2rem">Strategy</p>
+  <div class="strategy-picker" id="strategyPicker">
+    <label><input type="radio" name="strat" value="plain" checked>(no flags)</label>
+    <label><input type="radio" name="strat" value="unwind">--unwind K</label>
+    <label><input type="radio" name="strat" value="falsi">--falsification</label>
+    <label><input type="radio" name="strat" value="incr">--incremental-bmc</label>
+    <label><input type="radio" name="strat" value="kind">--k-induction</label>
+    <label><input type="radio" name="strat" value="kindp">--k-induction-parallel</label>
+  </div>
+
+  <fieldset class="group" id="grpGeneral">
+    <legend>General — plain &amp; default strategy</legend>
+    <div class="knob"><label class="flag" for="unwind">--unwind</label>
+      <input type="number" id="unwind" min="0" max="15" value="5"> <span class="hint">back-edge cap; 0 = none (unlimited symex)</span></div>
+    <div class="knob"><label class="flag"><input type="checkbox" id="noua"> --no-unwinding-assertions</label>
+      <span class="hint">cut becomes an assumption</span></div>
+    <div class="knob"><label class="flag"><input type="checkbox" id="pl"> --partial-loops</label>
+      <span class="hint">truncated path flows on unguarded</span></div>
+    <p class="hint" style="margin:.2rem 0">No strategy flag: one plain BMC run, <code>max_unwind</code> = 0, no k loop. These knobs shape where that single run cuts loops.</p>
+  </fieldset>
+
+  <fieldset class="group" id="grpIter">
+    <legend>Iterative strategies — shared knobs (--incremental-bmc / --falsification)</legend>
+    <div class="knob"><label class="flag" for="bks">--base-k-step</label>
+      <input type="number" id="bks" min="0" max="59" value="1"> <span class="hint">first k (0 rejected)</span></div>
+    <div class="knob"><label class="flag" for="ksi">--k-step</label>
+      <input type="number" id="ksi" min="1" max="59" value="1"> <span class="hint">increment per round</span></div>
+    <div class="knob"><label class="flag" for="mks">--max-k-step</label>
+      <input type="number" id="mks" min="2" max="60" value="50"> <span class="hint">cap (default 50)</span></div>
+    <div class="knob"><label class="flag"><input type="checkbox" id="unl"> --unlimited-k-steps</label>
+      <span class="hint">no cap; runs to --timeout/--memlimit</span></div>
+    <p class="hint" style="margin:.2rem 0">Round k re-runs symex with <code>--unwind k</code>. <code>--incremental-bmc</code> solves B(k) then F(k) each round; <code>--falsification</code> only B(k).</p>
+  </fieldset>
+
+  <fieldset class="group" id="grpKind">
+    <legend>k-Induction properties</legend>
+    <div class="knob"><label class="flag" for="mis">--max-inductive-step</label>
+      <input type="number" id="mis" min="-1" max="60" value="-1"> <span class="hint">cap on I(k) only; -1 = none (default)</span></div>
+    <div class="knob"><label class="flag"><input type="checkbox" id="cex"> --show-cex</label>
+      <span class="hint">print the inductive step's counterexample</span></div>
+    <div class="knob"><label class="flag"><input type="checkbox" id="bidir"> --bidirectional</label>
+      <span class="hint">mine the spurious cex for assignable invariants</span></div>
+    <p class="hint" style="margin:.2rem 0">I(k) havocs every loop-modified variable and assumes the entry condition; it is skipped at k = 1 and above the cap. B and F are untouched by these.</p>
+  </fieldset>
+
+  <div class="knob" style="margin-top:.6rem"><label class="flag" for="limit">event limit</label>
+    <input type="number" id="limit" min="10" max="400" value="40"> <span class="hint">demo cap on timeline length</span></div>
+
+  <p class="panel-title" style="margin-top:.8rem">Command line</p>
+  <div class="cmdline" id="cmdline"></div>
+</div>
+
+<section style="margin-top:1.2rem">
+  <h2>What you are looking at</h2>
+  <ul>
+    <li><strong>Green dots</strong> are assignments (each prints a <em>State</em> block with the
+    solver's model value), <strong>grey</strong> guard evaluations, <strong>amber</strong> the
+    unwinding cut, <strong>dark red</strong> a violated property, <strong>beige</strong> a phase
+    verdict (UNSAT/SAT), <strong>dashed</strong> the havoc that starts an inductive step, and
+    <strong>dark chips</strong> round/phase headers.</li>
+    <li>Iterative strategies loop k from <code>--base-k-step</code> to <code>--max-k-step</code> in
+    steps of <code>--k-step</code>; each round re-runs symex with <code>--unwind k</code>. The proof
+    closes on the first round whose forward condition holds — with <code>--k-step</code> 2 that is
+    k = 11, not 10.</li>
+    <li><code>--max-inductive-step</code> gates only I(k): rounds above the cap skip straight from
+    F(k) to the next k. B(k) and F(k) still run, so a proof via F(k) is unaffected.</li>
+    <li><code>--incremental-bmc</code> proves by full unrolling only: no inductive step, so if
+    F(k) never holds before the cap, the run gives up with VERIFICATION UNKNOWN.</li>
+    <li>With <code>K &lt; 10</code> in a plain run the verdict is the unwinding assertion (or one of
+    the two unsound outcomes under <code>--partial-loops</code> / <code>--no-unwinding-assertions</code>);
+    with <code>K ≥ 10</code> the loop exits naturally and the trace reaches the assert.</li>
+  </ul>
+</section>
+
+<section style="margin-top:1rem">
+  <h2>Sources</h2>
+  <ol>
+    <li>ESBMC docs — Verification Algorithms: <a href="https://esbmc.github.io/docs/theory/verification-algorithms/">esbmc.github.io/docs/theory/verification-algorithms</a></li>
+    <li>ESBMC docs — Usage, Unwinding Assertions &amp; Verification Strategies: <a href="https://esbmc.github.io/docs/usage/">esbmc.github.io/docs/usage</a></li>
+    <li><code>src/goto-symex/engine/symex_goto.cpp</code> — <code>get_unwind</code>, <code>loop_bound_exceeded</code> (master)</li>
+    <li><code>src/esbmc/parseoptions/bmc_strategy.cpp</code> — the B/F/I strategy loop and give-up verdict (master)</li>
+    <li><code>src/esbmc/parseoptions/k_induction.cpp</code> — phase runners, <code>--max-inductive-step</code> gate (master)</li>
+    <li><code>src/esbmc/parseoptions/command_line_options.cpp</code> — CLI validation of the shared knobs (master)</li>
+  </ol>
+</section>
+
+<p style="margin-top:1.5rem" class="disc">Made with <a href="https://byterepair.io/products/entoli/">Entoli</a></p>
+
+</main>
+
+<script>
+'use strict';
+var NEED = 10;         // body passes the loop needs
+var K_OK  = 10;        // first bound that fully unrolls the loop
+var MODEL_X = 7;       // the solver's chosen model for the nondet input
+
+var SRC = [
+  '#include <assert.h>',
+  'unsigned nondet_uint(void);',
+  '',
+  'int main(void) {',
+  '  unsigned x = nondet_uint();',
+  '  if (x > 10) return 0;      /* bounds x to 0..10 */',
+  '  unsigned i = 0;',
+  '  while (i < 10) {           /* the loop: exactly 10 passes */',
+  '    i = i + 1;',
+  '    if (x > 0) x = x - 1;',
+  '  }',
+  '  assert(x == 0);',
+  '  return 0;',
+  '}'
+];
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+function bin32(v){ var s=(v>>>0).toString(2); while(s.length<32)s='0'+s;
+  return '(' + s.slice(0,8)+' '+s.slice(8,16)+' '+s.slice(16,24)+' '+s.slice(24,32) + ')'; }
+
+/* symex events for one pass-sequence at bound k; mode decides the cut handling */
+function symexEvents(ev, k, mode, stRef){
+  var passes = k === 0 ? NEED : Math.min(k, NEED);
+  var x = MODEL_X;
+  for (var j = 1; j <= passes; j++) {
+    ev.push({ line:8, kind:'guard',
+      txt:'Unwinding loop 1 iteration ' + j + '   main.c line 8 function main' });
+    stRef.n++;
+    ev.push({ line:9, kind:'assign', txt:'i = i + 1  →  i = ' + j,
+      st:{ n:stRef.n, txt:'i = ' + j + ' ' + bin32(j) } });
+    if (x > 0) {
+      ev.push({ line:10, kind:'guard', txt:'guard x > 0: true — decrement taken' });
+      x = x - 1;
+      stRef.n++;
+      ev.push({ line:10, kind:'assign', txt:'x = x - 1  →  x = ' + x,
+        st:{ n:stRef.n, txt:'x = ' + x + ' ' + bin32(x) } });
+    } else {
+      ev.push({ line:10, kind:'guard', txt:'guard x > 0: false — x already 0' });
+    }
+  }
+  var cut = k > 0 && passes < NEED;
+  if (cut) {
+    ev.push({ line:8, kind:'cut',
+      txt:'Not unwinding loop 1 iteration ' + (k + 1) + ' — bound ' + k + ' reached at the back-edge' });
+    if (mode === 'assert') {
+      stRef.n++;
+      ev.push({ line:8, kind:'prop', violated:true,
+        txt:'unwinding assertion ¬(i < 10) fails here (i = ' + passes + ' < 10)',
+        st:{ n:stRef.n, txt:'i = ' + passes + ' ' + bin32(passes) } });
+    } else if (mode === 'assume') {
+      ev.push({ line:8, kind:'guard', txt:'assume ¬(i < 10) with i = ' + passes + ': infeasible — path assumed away' });
+    }
+  } else if (k > 0 && passes === NEED) {
+    ev.push({ line:8, kind:'guard', txt:'guard i < 10: false (i = ' + NEED + ') — natural exit, no cut' });
+  }
+  return { x:x, cut:cut, passes:passes };
+}
+
+/* ---------- plain runs: (no flags) and --unwind K ---------- */
+function buildPlain(cfg){
+  var ev = []; var stRef = { n:0 };
+  var bound = cfg.strat === 'plain' ? 0 : cfg.unwind;
+  var mode = cfg.pl ? 'partial' : (cfg.noua ? 'assume' : 'assert');
+  ev.push({ line:null, kind:'note',
+    txt: bound === 0
+      ? 'no --unwind: max_unwind = 0 — symex unrolls until the loop condition stops it'
+      : 'single BMC run with --unwind ' + bound + ' (no k loop)' });
+  ev.push({ line:null, kind:'header', txt:'Starting Bounded Model Checking' });
+  var r = symexEvents(ev, bound, mode, stRef);
+  if (bound === 0 || !r.cut) {
+    ev.push({ line:12, kind:'phase', sat:false,
+      txt:'assert(x == 0) with x = ' + r.x + ': UNSAT' });
+    ev.push({ line:null, kind:'end',
+      verdict:{ cls:'ok', label:'VERIFICATION SUCCESSFUL' + (bound === 0 ? '' : ' (sound)') },
+      txt: bound === 0
+        ? 'no bound: the loop unrolled its natural 10 passes'
+        : 'bound ' + bound + ' was never reached — the formula is UNSAT' });
+  } else if (mode === 'assert') {
+    ev.push({ line:null, kind:'end', violated:true,
+      verdict:{ cls:'bad', label:'VERIFICATION FAILED — unwinding assertion loop' },
+      txt:'the failing property is the CUT, not your assert' });
+  } else if (mode === 'assume') {
+    ev.push({ line:null, kind:'end',
+      verdict:{ cls:'ok', label:'VERIFICATION SUCCESSFUL (bounded)' },
+      txt:'paths past ' + bound + ' unwindings were assumed away — result holds only up to the bound' });
+  } else {
+    ev.push({ line:12, kind:'phase', sat:r.x > 0,
+      txt:'truncated path reached the assert with i = ' + r.passes + ', x = ' + r.x +
+          (r.x > 0 ? ' — spurious violation' : ' — holds by luck; pass ' + NEED + ' unchecked') });
+    ev.push({ line:null, kind:'end', violated:r.x > 0,
+      verdict: r.x > 0 ? { cls:'bad', label:'VERIFICATION FAILED — assertion (spurious)' }
+                       : { cls:'ok', label:'VERIFICATION SUCCESSFUL (silently unsound)' },
+      txt:'--partial-loops leaves the cut unguarded' });
+  }
+  return ev;
+}
+
+/* ---------- iterative strategies ---------- */
+function buildIter(cfg){
+  var ev = []; var stRef = { n:0 };
+  var isKind = cfg.strat === 'kind' || cfg.strat === 'kindp';
+  var stratFlag = { falsi:'--falsification', incr:'--incremental-bmc',
+                    kind:'--k-induction', kindp:'--k-induction-parallel' }[cfg.strat];
+
+  /* CLI validation, mirroring command_line_options.cpp */
+  if (cfg.bks === 0) {
+    ev.push({ line:null, kind:'end',
+      verdict:{ cls:'bad', label:'CLI error' },
+      txt:'error: Please specify --base-k-step >= 1: a base case of k = 0 sets --unwind 0, which ESBMC treats as unlimited unwinding.' });
+    return ev;
+  }
+  if (!cfg.unl && cfg.ksi >= cfg.mks) {
+    ev.push({ line:null, kind:'end', verdict:{ cls:'bad', label:'CLI error' },
+      txt:'error: --k-step (' + cfg.ksi + ') must be smaller than --max-k-step (' + cfg.mks + ').' });
+    return ev;
+  }
+  if (!cfg.unl && cfg.bks >= cfg.mks) {
+    ev.push({ line:null, kind:'end', verdict:{ cls:'bad', label:'CLI error' },
+      txt:'error: --base-k-step (' + cfg.bks + ') must be smaller than --max-k-step (' + cfg.mks + ').' });
+    return ev;
+  }
+
+  ev.push({ line:null, kind:'note',
+    txt:stratFlag + ': loops k from ' + cfg.bks + ' to ' + (cfg.unl ? '∞' : cfg.mks) +
+        ' in steps of ' + cfg.ksi + '; round k re-runs symex with --unwind k' });
+
+  var max = cfg.unl ? 999 : cfg.mks;
+  var CAP_ROUNDS = 24;               /* demo build cap: stop building further rounds */
+  var closed = null, built = 0;
+
+  for (var k = cfg.bks; k <= max && !closed && built < CAP_ROUNDS; k += cfg.ksi) {
+    built++;
+    /* ---- base case B(k): no-unwinding-assertions, partial-loops=false ---- */
+    ev.push({ line:null, kind:'header', round:'k=' + k + ' · B',
+      txt:'Checking base case, k = ' + k });
+    var rb = symexEvents(ev, k, 'assume', stRef);
+    ev.push({ line:null, kind:'phase', sat:false,
+      txt:'Base case: UNSAT — no violation up to k = ' + k });
+
+    if (cfg.strat === 'falsi') continue;
+
+    /* ---- forward condition F(k): only unwinding assertions checked ---- */
+    ev.push({ line:null, kind:'header', round:'k=' + k + ' · F',
+      txt:'Checking forward condition, k = ' + k });
+    var fSat = k < K_OK;
+    symexEvents(ev, k, 'assert', stRef);
+    if (!fSat) {
+      ev.push({ line:null, kind:'phase', sat:false,
+        txt:'Forward condition holds at k = ' + k + ': every loop fully unrolled' });
+      ev.push({ line:null, kind:'end',
+        verdict:{ cls:'ok', label:'VERIFICATION SUCCESSFUL' },
+        txt:'Solution found by the forward condition (k = ' + k + ') — all loops fully unrolled, result not bounded' });
+      closed = k;
+      break;
+    }
+    ev.push({ line:null, kind:'phase', sat:true,
+      txt:'Forward condition: SAT — a loop needed more than ' + k + ' unwindings' });
+
+    /* ---- inductive step I(k) ---- */
+    if (!isKind) continue;
+    if (k === 1) {
+      ev.push({ line:null, kind:'note', txt:'inductive step is not run at k = 1 — a one-iteration hypothesis proves nothing' });
+      continue;
+    }
+    if (cfg.mis >= 0 && k > cfg.mis) {
+      ev.push({ line:null, kind:'note', txt:'inductive step skipped: k = ' + k + ' > --max-inductive-step ' + cfg.mis });
+      continue;
+    }
+    ev.push({ line:null, kind:'header', round:'k=' + k + ' · I', txt:'Checking inductive step, k = ' + k });
+    ev.push({ line:8, kind:'havoc', txt:'havoc at loop head: i ← nondet_uint(), x ← nondet_uint()' });
+    ev.push({ line:8, kind:'guard', txt:'assume(i < 10) — entry condition pins the havoced state' });
+    ev.push({ line:12, kind:'phase', sat:true,
+      txt:'Inductive step: SAT — spurious counterexample (havoc decoupled i from x: e.g. i = 9, x = 10)' });
+    if (cfg.cex)
+      ev.push({ line:null, kind:'note', txt:'--show-cex: cex states printed — i = 9, x = 10 … no real execution reaches this state' });
+    if (cfg.bidir)
+      ev.push({ line:null, kind:'note', txt:'--bidirectional: searching the spurious cex for assignable invariants' });
+  }
+
+  if (!closed) {
+    if (built >= CAP_ROUNDS) {
+      ev.push({ line:null, kind:'end', verdict:{ cls:'unk', label:'… (demo cap)' },
+        txt:'further rounds omitted here; the run continues at k = ' + (cfg.bks + built * cfg.ksi) +
+            (cfg.unl ? ' until --timeout/--memlimit' : ' up to --max-k-step ' + cfg.mks) });
+    } else {
+      ev.push({ line:null, kind:'end', verdict:{ cls:'unk', label:'VERIFICATION UNKNOWN' },
+        txt:'Unable to prove or falsify the program, giving up. — exhausted k ≤ ' +
+            (cfg.unl ? '∞' : cfg.mks) + ' without closing F(k)' + (isKind ? ' or I(k)' : '') });
+    }
+  }
+  return ev;
+}
+
+function buildTimeline(cfg){
+  if (cfg.strat === 'plain' || cfg.strat === 'unwind') return buildPlain(cfg);
+  return buildIter(cfg);
+}
+
+/* ---------- rendering ---------- */
+var step = 0, events = [], timer = null;
+
+function readCfg(){
+  return { strat: (document.querySelector('input[name=strat]:checked') || {}).value || 'plain',
+           unwind: parseInt($('unwind').value,10) || 0,
+           noua: $('noua').checked, pl: $('pl').checked,
+           bks: parseInt($('bks').value,10), ksi: parseInt($('ksi').value,10),
+           mks: parseInt($('mks').value,10), unl: $('unl').checked,
+           mis: parseInt($('mis').value,10),
+           cex: $('cex').checked, bidir: $('bidir').checked,
+           limit: parseInt($('limit').value,10) || 40 };
+}
+
+function cmdline(cfg){
+  var f = ['main.c'];
+  if (cfg.strat === 'plain') { /* nothing */ }
+  else if (cfg.strat === 'unwind') {
+    f.push('--unwind ' + cfg.unwind);
+    if (cfg.noua) f.push('--no-unwinding-assertions');
+    if (cfg.pl) f.push('--partial-loops');
+  } else {
+    f.push({ falsi:'--falsification', incr:'--incremental-bmc',
+             kind:'--k-induction', kindp:'--k-induction-parallel' }[cfg.strat]);
+    f.push('--base-k-step ' + cfg.bks);
+    f.push('--k-step ' + cfg.ksi);
+    if (cfg.unl) f.push('--unlimited-k-steps'); else f.push('--max-k-step ' + cfg.mks);
+    if (cfg.strat === 'kind' || cfg.strat === 'kindp') {
+      if (cfg.mis >= 0) f.push('--max-inductive-step ' + cfg.mis);
+      if (cfg.cex) f.push('--show-cex');
+      if (cfg.bidir) f.push('--bidirectional');
+    }
+  }
+  return 'esbmc ' + f.join(' ');
+}
+
+function visibility(cfg){
+  var iterative = !(cfg.strat === 'plain' || cfg.strat === 'unwind');
+  var kindish = cfg.strat === 'kind' || cfg.strat === 'kindp';
+  $('grpGeneral').style.display = iterative ? 'none' : '';
+  $('grpIter').style.display = iterative ? '' : 'none';
+  $('grpKind').style.display = kindish ? '' : 'none';
+}
+
+function render(){
+  var cfg = readCfg();
+  visibility(cfg);
+  $('cmdline').textContent = cmdline(cfg);
+  events = buildTimeline(cfg);
+  var truncated = events.length > cfg.limit;
+  var shown = truncated ? cfg.limit : events.length;
+  if (step >= shown) step = shown - 1;
+  if (step < 0) step = 0;
+  var cur = events[step];
+
+  /* source */
+  var seen = {};
+  for (var i = 0; i <= step; i++) if (events[i].line) seen[events[i].line] = true;
+  $('src').innerHTML = SRC.map(function(text, idx){
+    var ln = idx + 1;
+    var cls = 'ln' + (seen[ln] ? ' seen' : '') + (cur && cur.line === ln ? ' cur' : '');
+    return '<span class="' + cls + '"><span class="no">' + ln + '</span>' + esc(text || ' ') + '</span>';
+  }).join('');
+  var visited = Object.keys(seen).length;
+  $('coverage').textContent = 'source scan: ' + visited + ' of ' + SRC.length + ' lines visited' +
+    (cur && cur.kind === 'havoc' ? ' — havoc re-enters the loop head with fresh nondet values' : '') +
+    (truncated ? ' (event limit ' + cfg.limit + ' reached; the real run continues)' : '');
+
+  /* run output up to current step */
+  var out = [];
+  for (var i = 0; i <= step; i++) {
+    var e = events[i];
+    var cls = e.kind === 'prop' || e.violated ? 'bad'
+            : e.kind === 'phase' ? (e.sat ? 'cut' : 'ok')
+            : e.kind === 'cut' ? 'cut'
+            : e.kind === 'note' ? 'note'
+            : e.kind === 'header' || e.kind === 'end' ? 'sep' : '';
+    if (e.st)
+      out.push('<span class="st">State ' + e.st.n + ' file main.c line ' + e.line + ' function main thread 0</span>' +
+               '<span class="st">----------------------------------------------------</span>' +
+               '<span class="st' + (i === step ? ' cur' : '') + '">' + esc(e.st.txt) + '</span>');
+    out.push('<span class="st' + (cls ? ' ' + cls : '') + (i === step && !e.st ? ' cur' : '') + '">' +
+             esc(e.kind === 'end' ? '' : e.txt || '') + (e.kind === 'end' && e.verdict ? 'VERIFICATION ' + (e.verdict.cls === 'bad' ? 'FAILED' : e.verdict.cls === 'ok' ? 'SUCCESSFUL' : 'UNKNOWN') : '') + '</span>');
+  }
+  $('term').innerHTML = out.join('\n');
+
+  /* verdict line: last verdict at or before current step */
+  var vd = $('verdict'); vd.textContent = ''; vd.className = 'verdict';
+  for (var i = Math.min(step, shown - 1); i >= 0; i--) {
+    if (events[i].verdict) {
+      vd.textContent = events[i].verdict.label + '   (at event ' + (i + 1) + ')';
+      vd.className = 'verdict ' + events[i].verdict.cls;
+      break;
+    }
+  }
+
+  /* timeline dots, grouped by round chips */
+  var html = '';
+  events.slice(0, shown).forEach(function(e, i){
+    if (e.round) html += '<span class="dot header future-off" style="opacity:1">' + esc(e.round) + '</span>';
+    var cls = 'dot ' + e.kind + (i === step ? ' cur' : '') + (i > step ? ' future' : '');
+    html += '<span class="' + cls + '" data-i="' + i + '" title="' + esc(e.txt || '') + '">' +
+            (e.kind === 'header' || e.kind === 'end' ? '' : (i + 1)) + '</span>';
+  });
+  $('dots').innerHTML = html;
+
+  /* keep the run-output pane pinned to its newest content, after layout */
+  var t = $('term');
+  function pin(){ t.scrollTop = t.scrollHeight; }
+  pin();
+  requestAnimationFrame(function(){ pin(); requestAnimationFrame(pin); });
+  /* a click must not yank the page to the focused element */
+  if (document.activeElement && document.activeElement.blur)
+    document.activeElement.blur();
+
+  $('nowline').textContent = cur ? (cur.line ? 'line ' + cur.line + ' — ' : '') + (cur.txt || cur.verdict && cur.verdict.label || '') : '';
+  $('stepinfo').textContent = 'event ' + (step + 1) + ' / ' + shown + (truncated ? ' (limit)' : ' (end)');
+  $('prev').disabled = step === 0;
+  $('next').disabled = step >= shown - 1;
+}
+
+function stopAuto(){ if (timer) { clearInterval(timer); timer = null; $('auto').textContent = '⏵ auto'; } }
+
+/* click handlers: preventDefault + blur so a click never scrolls the page */
+$('dots').addEventListener('click', function(ev){
+  var d = ev.target.closest ? ev.target.closest('.dot[data-i]') : null;
+  if (!d) return;
+  ev.preventDefault();
+  stopAuto();
+  step = parseInt(d.getAttribute('data-i'), 10);
+  render();
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+});
+function pressed(id, fn){
+  $(id).addEventListener('click', function(ev){
+    ev.preventDefault();
+    fn();
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  });
+}
+pressed('next', function(){ if (step < Math.min(readCfg().limit, events.length) - 1) { step++; render(); } });
+pressed('prev', function(){ if (step > 0) { step--; render(); } });
+pressed('auto', function(){
+  if (timer) { stopAuto(); return; }
+  $('auto').textContent = '⏸ pause';
+  timer = setInterval(function(){
+    var shown = Math.min(readCfg().limit, events.length);
+    if (step >= shown - 1) { stopAuto(); return; }
+    step++; render();
+  }, 500);
+});
+pressed('reset', function(){ step = 0; render(); });
+
+/* param changes rebuild */
+['unwind','noua','pl','bks','ksi','mks','unl','mis','cex','bidir','limit'].forEach(function(id){
+  $(id).addEventListener('change', function(){ stopAuto(); step = 0; render(); });
+});
+document.querySelectorAll('#strategyPicker input').forEach(function(el){
+  el.addEventListener('change', function(){ stopAuto(); step = 0; render(); });
+});
+document.addEventListener('keydown', function(e){
+  if (e.key === 'ArrowRight') { stopAuto(); if (step < Math.min(readCfg().limit, events.length) - 1) { step++; render(); } }
+  if (e.key === 'ArrowLeft')  { stopAuto(); if (step > 0) { step--; render(); } }
+});
+
+/* no scroll anchoring: growing panes must not pull the viewport */
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+try { document.documentElement.style.overflowAnchor = 'none'; } catch (e) {}
+
+step = 0;
+render();
+</script>
+</body>
+</html>
