@@ -370,9 +370,9 @@ bounds get visited at all.</p>
     F(k) to the next k. B(k) and F(k) still run, so a proof via F(k) is unaffected.</li>
     <li><code>--incremental-bmc</code> proves by full unrolling only: no inductive step, so if
     F(k) never holds before the cap, the run gives up with VERIFICATION UNKNOWN.</li>
-    <li>With <code>K &lt; 10</code> in a plain run the verdict is the unwinding assertion (or one of
+    <li>With <code>K &lt; 11</code> in a plain run the verdict is the unwinding assertion (or one of
     the two unsound outcomes under <code>--partial-loops</code> / <code>--no-unwinding-assertions</code>);
-    with <code>K ≥ 10</code> the loop exits naturally and the trace reaches the assert.</li>
+    with <code>K ≥ 11</code> the loop exits naturally and the trace reaches the assert.</li>
   </ul>
 </section>
 
@@ -381,7 +381,7 @@ bounds get visited at all.</p>
   <ol>
     <li>ESBMC docs, Verification Algorithms: <a href="https://esbmc.github.io/docs/theory/verification-algorithms/">esbmc.github.io/docs/theory/verification-algorithms</a></li>
     <li>ESBMC docs, Usage, Unwinding Assertions &amp; Verification Strategies: <a href="https://esbmc.github.io/docs/usage/">esbmc.github.io/docs/usage</a></li>
-    <li><code>src/goto-symex/engine/symex_goto.cpp</code>: <code>get_unwind</code>, <code>loop_bound_exceeded</code> (master)</li>
+    <li><code>src/goto-symex/symex_goto.cpp</code>: <code>get_unwind</code>, <code>loop_bound_exceeded</code> (master)</li>
     <li><code>src/esbmc/parseoptions/bmc_strategy.cpp</code>: the B/F/I strategy loop and give-up verdict (master)</li>
     <li><code>src/esbmc/parseoptions/k_induction.cpp</code>: phase runners, <code>--max-inductive-step</code> gate (master)</li>
     <li><code>src/esbmc/parseoptions/command_line_options.cpp</code>: CLI validation of the shared knobs (master)</li>
@@ -395,7 +395,7 @@ bounds get visited at all.</p>
 <script>
 'use strict';
 var NEED = 10;         // body passes the loop needs
-var K_OK  = 10;        // first bound that fully unrolls the loop
+var K_OK  = 11;        // first bound that fully unrolls the loop (bound K cuts at K-1 passes)
 var MODEL_X = 7;       // the solver's chosen model for the nondet input
 
 var SRC = [
@@ -422,11 +422,11 @@ function bin32(v){ var s=(v>>>0).toString(2); while(s.length<32)s='0'+s;
 
 /* symex events for one pass-sequence at bound k; mode decides the cut handling */
 function symexEvents(ev, k, mode, stRef){
-  var passes = k === 0 ? NEED : Math.min(k, NEED);
+  var passes = k === 0 ? NEED : Math.min(k - 1, NEED);
   var x = MODEL_X;
   for (var j = 1; j <= passes; j++) {
     ev.push({ line:8, kind:'guard',
-      txt:'Unwinding loop 1 iteration ' + j + '   main.c line 8 function main' });
+      txt:'Unwinding loop 3 iteration ' + j + '   file main.c line 8 column 3 function main' });
     stRef.n++;
     ev.push({ line:9, kind:'assign', txt:'i = i + 1  →  i = ' + j,
       st:{ n:stRef.n, txt:'i = ' + j + ' ' + bin32(j) } });
@@ -443,7 +443,7 @@ function symexEvents(ev, k, mode, stRef){
   var cut = k > 0 && passes < NEED;
   if (cut) {
     ev.push({ line:8, kind:'cut',
-      txt:'Not unwinding loop 1 iteration ' + (k + 1) + ': bound ' + k + ' reached at the back-edge' });
+      txt:'Not unwinding loop 3 iteration ' + k + ': bound ' + k + ' reached at the back-edge' });
     if (mode === 'assert') {
       stRef.n++;
       ev.push({ line:8, kind:'prop', violated:true,
@@ -676,7 +676,7 @@ function render(){
             : e.kind === 'note' ? 'note'
             : e.kind === 'header' || e.kind === 'end' ? 'sep' : '';
     if (e.st)
-      out.push('<span class="st">State ' + e.st.n + ' file main.c line ' + e.line + ' function main thread 0</span>' +
+      out.push('<span class="st">State ' + e.st.n + ' file main.c line ' + e.line + ' column 3 function main thread 0</span>' +
                '<span class="st">----------------------------------------------------</span>' +
                '<span class="st' + (i === step ? ' cur' : '') + '">' + esc(e.st.txt) + '</span>');
     out.push('<span class="st' + (cls ? ' ' + cls : '') + (i === step && !e.st ? ' cur' : '') + '">' +
